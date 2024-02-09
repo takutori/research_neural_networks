@@ -32,15 +32,6 @@ def get_loss(predict_task: str):
     return criterion
 
 
-def adjust_learning_rate(optimizer, epoch, lr_):
-    lr_adjust = {epoch: lr_ * (0.5 ** ((epoch - 1) // 1))}
-    if epoch in lr_adjust.keys():
-        lr = lr_adjust[epoch]
-        for param_group in optimizer.param_groups:
-            param_group['lr'] = lr
-        print('Updating learning rate to {}'.format(lr))
-
-
 class EarlyStopping:
     def __init__(self, training_start_time: int, data_name: str, model_name:str, patience: int=10, verbose: bool=False):
         self.data_name = data_name
@@ -54,6 +45,16 @@ class EarlyStopping:
         self.early_stop = False
 
     def __call__(self, model, valid_loss):
+        """
+        early stoppingの判断を行う
+
+        Parameters
+        ----------
+        model : object
+            学習中のモデル
+        valid_loss : float
+            現在のロス値
+        """
         if self.best_valid_loss < valid_loss: # 前エポックの損失より大きくなった場合
             self.epoch += 1 # カウンターを1増やす
 
@@ -68,6 +69,14 @@ class EarlyStopping:
             self.save_checkpoint(model)
 
     def save_checkpoint(self, model):
+        """
+        モデルを保存する。
+
+        Parameters
+        ----------
+        model : object
+           学習中のモデル
+        """
         model_save_path = "model_checkpoints/"
         dumpPickle(model_save_path + "data_name=" + self.data_name + "_model_name=" + self.model_name + "_" + str(int(self.training_start_time)) + ".pickle", model)
         print("saving model...")
@@ -86,6 +95,26 @@ class StructuredSolver:
                  batch_size: int = 256,
                  lr: float=0.1
                  ):
+        """
+        Parameters
+        ----------
+        data_name : str
+            データの名前
+        feature_names : List
+            特徴量の名前のリスト
+        target_name : str
+            目的変数の名前
+        predict_task : str, optional
+            予測のタスクの種類, by default "Classification"
+        model_name : str, optional
+            モデルの名前, by default "MLP"
+        epoch_num : int, optional
+            epochの数, by default 5
+        batch_size : int, optional
+            バッチサイズ, by default 256
+        lr : float, optional
+            学習率, by default 0.1
+        """
         self.data_name = data_name
         self.feature_names = feature_names
         self.target_name = target_name
@@ -99,6 +128,9 @@ class StructuredSolver:
 
 
     def build_model(self):
+        """
+        学習の設定を行う
+        """
         self.training_start_time = time.time()
         device = 'cuda' if torch.cuda.is_available() else 'cpu'
         # モデル
@@ -113,6 +145,16 @@ class StructuredSolver:
 
 
     def train(self, train_data, valid_data):
+        """
+        モデルの学習
+
+        Parameters
+        ----------
+        train_data : pd.DataFrame
+            学習データ
+        valid_data : pd.DataFrame
+            検証データ
+        """
         print("============================= TRAIN MODE ===============================")
         self.training_start_time = time.time()
 
